@@ -1,19 +1,25 @@
 {
-  "name": "weather-pipeline",
-  "dockerComposeFile": "../docker-compose.yaml",
-  "service": "airflow-webserver",
-  "workspaceFolder": "/workspaces/pipeline",
-  "shutdownAction": "stopCompose",
-  "forwardPorts": [8080],
-  "portsAttributes": {
-    "8080": {
-      "label": "Airflow UI",
-      "onAutoForward": "notify"
+  "name": "Airflow Weather Pipeline Codespace",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
     }
+  },
+  "forwardPorts": [8080, 8501],
+  "portsAttributes": {
+    "8080": { "label": "Airflow Webserver", "onAutoForward": "notify" },
+    "8501": { "label": "Streamlit Dashboard", "onAutoForward": "notify" }
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-python.python"]
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "redhat.vscode-yaml",
+        "innoverio.vscode-dbt-power-user"
+      ]
     }
-  }
+  },
+  "postCreateCommand": "pip install --user -r requirements.txt"
 }
