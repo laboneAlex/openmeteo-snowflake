@@ -1,5 +1,6 @@
-openmeteo-requests
-requests-cache
-retry-requests
-pandas
-apache-airflow-providers-snowflake
+apache-airflow-providers-snowflake==5.6.0
+openmeteo-requests==1.2.0
+requests-cache==1.2.0
+retry-requests==2.0.0
+pandas==2.2.2
+dbt-snowflake==1.9.0
