@@ -1,1 +1,23 @@
+# Start with a base Airflow image matching your DAG's syntax
+FROM apache/airflow:2.9.2-python3.11
 
+# Switch to root user to grant permissions
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends gcc
+
+# Set up the secure entrypoint helper script and make it executable
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Switch back to the safe, standard airflow user
+USER airflow
+
+# Copy and install the Python dependencies needed by the DAG
+COPY requirements.txt /requirements.txt
+RUN pip install --no-cache-dir --user -r /requirements.txt
+
+# Set the working directory
+WORKDIR /opt/airflow
+
+# Use our custom entrypoint to mount the Snowflake private key securely
+ENTRYPOINT ["/entrypoint.sh"]
