@@ -14,7 +14,7 @@ USER airflow
 
 # Copy and install the Python dependencies needed by the DAG
 COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir --user -r /requirements.txt
+RUN pip install --no-cache-dir -r /requirements.txt
 
 # Set the working directory
 WORKDIR /opt/airflow
