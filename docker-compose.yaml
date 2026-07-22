@@ -2,18 +2,24 @@ x-airflow-common: &airflow-common
   build:
     context: .
     dockerfile: Dockerfile.airflow
-  user: "${AIRFLOW_UID:-50000}"
+  user: "${AIRFLOW_UID:-50000}:0"
   environment:
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     - AIRFLOW__CORE__LOAD_EXAMPLES=false
-    - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-    # Bridge secrets from Codespaces into the container's memory
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    - USER=airflow
+    - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+    - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+    - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
+    - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
+    - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
     - SNOWFLAKE_PRIVATE_KEY=${SNOWFLAKE_PRIVATE_KEY}
     - SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}
     - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./dbt:/opt/airflow/dbt
+    - ./logs:/opt/airflow/logs
   depends_on:
     postgres:
       condition: service_healthy
@@ -34,10 +40,27 @@ services:
     <<: *airflow-common
     entrypoint: /bin/bash
     command:
-      - -c
-      - |
-        airflow db migrate
-        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true
+    - -c
+    - |
+      airflow db migrate
+      airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true
+      python -c "
+      import json, os
+      conn = {
+          'conn_type': 'snowflake',
+          'login': os.environ['SNOWFLAKE_USER'],
+          'password': os.environ.get('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', ''),
+          'extra': {
+              'account': os.environ['SNOWFLAKE_ACCOUNT'],
+              'warehouse': os.environ['SNOWFLAKE_WAREHOUSE'],
+              'database': os.environ['SNOWFLAKE_DATABASE'],
+              'role': os.environ['SNOWFLAKE_ROLE'],
+              'private_key_content': os.environ['SNOWFLAKE_PRIVATE_KEY'],
+          },
+      }
+      print(json.dumps({'snowflake_default': conn}))
+      " > /tmp/conn.json
+      airflow connections import /tmp/conn.json --overwrite || true
     restart: "no"
 
   airflow-webserver:
